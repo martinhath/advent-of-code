@@ -7,7 +7,7 @@ use std::io::Read;
 fn main() {
     let day = 2;
 
-    let mut filename = "./input_day_".to_string();
+    let mut filename = "./input/input_day_".to_string();
     let day_str = day.to_string();
     filename.push_str(&day_str);
 
