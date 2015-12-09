@@ -1,17 +1,4 @@
-use std::fs::File;
-use std::io::Read;
-
-static FILE_NAME: &'static str = "./input_day_1";
-
-pub fn day_1() {
-    let mut file = File::open(FILE_NAME).unwrap();
-    let mut input = String::new();
-
-    let res = file.read_to_string(&mut input);
-    if let Err(e) = res {
-        println!("Error: {:?}", e);
-    }
-
+pub fn day_1(input: String) {
     let floor = input.chars()
         .fold(0, |acc, item|
               if item == '(' {
