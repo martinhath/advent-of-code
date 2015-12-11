@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 mod days;
 use days::*;
 
@@ -5,7 +6,7 @@ use std::fs::File;
 use std::io::Read;
 
 fn main() {
-    let day = 4;
+    let day = 11;
 
     let filename = format!( "./input/input_day_{}", day);
 
@@ -24,6 +25,8 @@ fn main() {
         2 => day2::day_2(input),
         3 => day3::day_3(input),
         4 => day4::day_4(input),
+        5 => day5::day_5(input),
+        11 => day11::day_11(input),
         _ => ()
     }
 }
