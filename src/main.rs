@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::Read;
 
 fn main() {
-    let day = 7;
+    let day = 8;
 
     let filename = format!("./input/input_day_{}", day);
 
@@ -28,6 +28,7 @@ fn main() {
         5 => day5::day_5(input),
         6 => day6::day_6(input),
         7 => day7::day_7(input),
+        8 => day8::day_8(input),
         11 => day11::day_11(input),
         _ => ()
     }
