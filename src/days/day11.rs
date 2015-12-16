@@ -35,7 +35,7 @@ fn is_invalid(bytes: &Vec<u8>) -> bool {
     // println!("{:?}", bytes);
     // straight 
     let mut has_straight = false;
-    for i in (0..bytes.len() - 2) {
+    for i in 0..bytes.len() - 2 {
         let a = bytes[i];
         let b = bytes[i + 1];
         let c = bytes[i + 2];
@@ -47,11 +47,11 @@ fn is_invalid(bytes: &Vec<u8>) -> bool {
     if !has_straight {return true;}
     // two pairs
     // faster to simply identify all pairs?
-    for i in (0..bytes.len() - 1) {
+    for i in 0..bytes.len() - 1 {
         let a = bytes[i];
         let b = bytes[i + 1];
         if a == b {
-            for j in (i + 2..bytes.len() - 1) {
+            for j in i + 2..bytes.len() - 1 {
                 let x = bytes[j];
                 let y = bytes[j + 1];
                 if x == y {

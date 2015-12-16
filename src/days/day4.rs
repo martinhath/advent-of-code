@@ -10,7 +10,7 @@ const MAX: i32 = i32::MAX;
 fn solve(word: &str) {
     println!("Solving for \"{}\"", word);
 
-    for n in (1..MAX) {
+    for n in 1..MAX {
         let string = format!("{}{}", word, n);
         let mut md5 = Md5::new();
         md5.input(string.as_bytes());
