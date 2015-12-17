@@ -61,7 +61,7 @@ pub fn day_13(input: String) {
 
     let mut best = i64::min_value();
     for perm in permutations(v) {
-        let mut v = perm;
+        let v = perm;
         // part II: as we generate all permutations instead of all
         //          circles, placing ourself only at the end of the
         //          list doens't remove any combinations, while making
