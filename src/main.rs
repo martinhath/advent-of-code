@@ -8,6 +8,7 @@ fn main() {
 
     match which_task {
         1 => tasks::task_1(),
+        2 => tasks::task_2(),
         _ => {}
     }
 }

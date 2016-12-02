@@ -28,7 +28,7 @@ pub fn task_1() {
     for mv in moves {
         let n = mv[1..].parse::<i32>().unwrap();
         dir = dir.turn(mv.chars().next().unwrap());
-        for n in 0..n {
+        for _ in 0..n {
             if coords.contains(&(x, y)) {
                 println!("{:?} {:?}", x, y);
                 println!("{:?}", x.abs() + y.abs());
@@ -45,4 +45,92 @@ pub fn task_1() {
     }
     println!("{:?} {:?}", x, y);
     println!("{:?}", x.abs() + y.abs());
+}
+
+pub fn task_2() {
+    let input = "LLULLLRLDLLLRLUURDDLRDLDURULRLUULUDDUDDLLLURRLDRRLDRRRLDUDLRDLRRDLLDUDUDUDRLUDUUDLLLRDURUDUULUDLRDUUUDUUDURLDUULLRDLULDUURUDRDDLDRLURLRURRDUURLRLUURURUUULLRLLULRUURLULURDLLRRUDLUDULDRDRLRULUURRDRULLRUUUDLRLDLUURRRURDLUDDRRUDRLUDRDLLLLLRULLDUDRLRRDDULDLRUURRRRRLDLDLRDURDRUUURDLRDDDDULURRRRDUURLULLLDLRULRDULRUDLRRLRDLLRLLLUDDLRDRURDDLLLLDUDRDLRURRDLRDDDLDULDRLRULUUDRRRUUULLLURRDDUULURULDURRLLULLDRURUUULRLRDRRUDRDRRDURRUUUULDRDDDUDLDDURLLRR
+LDLRRRUURDLDDRLRRDLLULRULLLUDUUDUDLRULLDRUDRULLDULURDRDDLRURDDULLLLDLRDRDRDDURLURLURLUDRDDRDULULUDDRURRDLLDUURDRDDLRLLURRDLRDDULDLULURDRDLUDRRUUDULLULURRDUDRUUUDRULDLDURLRRUDURLDLRRUURRRURDLUDRLDUDRRUDUURURUDDUUDRDULRDLUDRRRLDRURLLRDDDLUDRDUDURDDDRRDDRRRLLRRDDLDDLRUURRURDLLDRLRRDLLUDRRRURURLRDRLLRLRLRULLRURLDLRRULLRRRDULUUULDRDLLURDDLDLRDRLUUDLLUDDLDRRLDLRUDRUDLLUURLLULURUDUDRLULLUDRURDDLDLDDUDLRDDRRURLRLLUDDUDRUURRURRULDRLDDRLLRRLDDURRDLDULLLURULLLRUURLRRRRUUULRLLLURRLRLRUDRDUUUDUUUDDLULLDLLLLDLDRULDRUUULDDDLURLDLRLULRUDDDDURDDLU
+RURLURRDLDULLULDDDLRUULLUURLRUDRUDRRUDDLDDDDRRDLRURLRURLDDDUDDUURRDRULDRRRULRDRDDLRUDULRLURDUUDRRLDLRDRURDLDRRRRDRURUUDDDLLRDRDUDUDUDLLULURULRRLRURUULUULDDDDURULRULLRUDUURLURDUDLUDLUDRLLDUUDUULRLRLUUDRDULDULRURDRRRULRUDLRURDDULUDULLRLRURURUULLULDRURLLRRUUDDUUURRDLURUURULRDRRDDUDULRDDLUDLURURUURDRULLRDDLLRDDLDRDUDRRDLUURRLRLUURRULUDURLDDRLLURRDDDLDDRURULLDDRLUDDLRLURDUDULLRDULLLDLLUDDRUDRUDDUUDRDRULRL
+RLRDRDULULUDLUDRDRLUDLDLLUDURULDDDUDLRURLLRLRLDLDRLDURDLRRURLULLULURLLDRRDRLUDRLRDLLULRULURRURURUULRDUDLLRDLRRRRRLUURDRRRDLRUDLLDLLDLRUUUDLLLDDDLRDULLRUUDDRLDDURRRDLRLRLDDDDLRDRULLUURUUDRRLLRLLRDDLLRURRRRDRULRRLLRLLLRLDRRLDDDURRURLDURUURRLRLRLDRURULLRLRUDLDUURDLLRLDLURUUUDLLRDRDDDDDDRLDRRRLRRRRURUDLDDRDLLURUDLRRLDDDLUDUDUULRDULULUDDULUUDLLLLRLDDUUULRLRDULURDURRRURRULURRRDRDLDDURDLURUDURRRDDRLRLUDLUDDLUULLDURLURDDUDDLRUUUDRLLDRURL
+ULUDLLUDDULRUURDRURDUDUDLUURDDDRRLUDURURDRURRLDRDURLRLLRRDDRRDRRRUULURUDURUDULRRRRDDLDURRLRRDUDDDRLLLULDRLRLURRDUURDURRRURRDLUDUDDRLDLURRRDDRLLRDRDDRDURRRRLURRLUDDURRULRUDUDULDRUDDRULLUUULDURRRLDRULLURULLRUDLDUDDLDULDLUUDRULULDLLDRULLRUULDUDUUDRLRRLDLUULUDLLDDRLRRDDLLURURDULRRDDRURDRLRLULDLDURULLUUUDURURDLDUDDDDUUULUDLUURRULLDLRLURDLURLRLDDURRLDDRRRDUUULLUULDLLDLLDDRLRRUDLULDRLULDULULRRLRULUUURURUUURDUUDDURLLUDDRLRDDLUURRUULRDLDDRLULUULRDRURLUURDRDUURUDLRR";
+//     let input = "ULL
+// RRDDD
+// LURDL
+// UUUUD";
+    if false { // part 1
+        let mut x = 1usize;
+        let mut y = 1usize;
+        for line in input.lines() {
+            for c in line.chars() {
+                use std::cmp::min;
+                match c {
+                    'U' => { y = y.saturating_sub(1); }
+                    'L' => { x = x.saturating_sub(1); }
+                    'R' => { x = min(x + 1, 2); }
+                    'D' => { y = min(y + 1, 2); }
+                    _ => unreachable!(),
+                }
+            }
+            print!("{}", x + y * 3 + 1);
+        }
+    }
+    if true { // part 2
+        let mut x = 0usize;
+        let mut y = 2usize;
+        for line in input.lines() {
+            fn is_outside(x: usize, y: usize) -> bool {
+                match y {
+                    0 => { x != 2 }
+                    1 => { x == 0 || x == 4 }
+                    3 => { x == 0 || x == 4 }
+                    4 => { x != 2 }
+                    _ => false
+                }
+            }
+            fn coord(x: usize, y: usize) -> char {
+                // assume is_inside
+                match y {
+                    0 => '1',
+                    1 => match x {
+                        1 => '2',
+                        2 => '3',
+                        3 => '4',
+                        _ => unreachable!()
+                    },
+                    2 => match x {
+                        0 => '5',
+                        1 => '6',
+                        2 => '7',
+                        3 => '8',
+                        4 => '9',
+                        _ => unreachable!()
+                    },
+                    3 => match x {
+                        1 => 'A',
+                        2 => 'B',
+                        3 => 'C',
+                        _ => unreachable!()
+                    },
+                    _ => 'D',
+                }
+            };
+            for c in line.chars() {
+                use std::cmp::min;
+                let mut x1 = x;
+                let mut y1 = y;
+                match c {
+                    'U' => { y1 = y.saturating_sub(1); }
+                    'L' => { x1 = x.saturating_sub(1); }
+                    'R' => { x1 = min(x + 1, 4); }
+                    'D' => { y1 = min(y + 1, 4); }
+                    _ => unreachable!(),
+                }
+                if !is_outside(x1, y1) {
+                    x = x1;
+                    y = y1;
+                }
+            }
+            print!("{}", coord(x, y));
+        }
+    }
 }
