@@ -7,4 +7,6 @@ authors = ["Martin Hafskjold Thoresen <martinhath@gmail.com>"]
 regex = "*"
 rust-crypto = "*"
 lazy_static = "*"
-
+rayon = "*"
+rand = "*"
+permutohedron = "*"

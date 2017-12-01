@@ -623,6 +623,13 @@ pub fn task_11() {
                 &E::Microchip(s) => s,
             }
         }
+
+        fn short_label(&self) -> String {
+            match self {
+                &E::Generator(s) => format!("G{}", s.chars().next().unwrap()),
+                &E::Microchip(s) => format!("M{}", s.chars().next().unwrap()),
+            }
+        }
     }
 
     #[derive(Debug, Eq, PartialEq, Clone, Ord, PartialOrd)]
@@ -634,6 +641,24 @@ pub fn task_11() {
     }
 
     impl<'a> State<'a> {
+        fn print(&self) {
+            for level in (1..5).rev() {
+                if self.elevator == level {
+                    print!("E ");
+                } else {
+                    print!("  ");
+                }
+                for &(ref e, l) in &self.game {
+                    if level == l {
+                        print!("{:2} ", e.short_label());
+                    } else {
+                        print!(" . ");
+                    }
+                }
+                print!("\n");
+            }
+        }
+
         fn id(&self) -> usize {
             let mut id = 0;
             id += self.elevator;
@@ -715,13 +740,13 @@ pub fn task_11() {
             self.game.iter().all(|&(_, n)| n == self.levels)
         }
 
-        fn print_short(&self) {
-            print!("{}", self.elevator);
-            for &(_, e) in &self.game {
-                print!("{}", e);
-            }
-            println!("");
-        }
+        // fn print_short(&self) {
+        //     print!("{}", self.elevator);
+        //     for &(_, e) in &self.game {
+        //         print!("{}", e);
+        //     }
+        //     println!("");
+        // }
     }
 
     impl<'a> Hash for State<'a> {
@@ -737,11 +762,18 @@ pub fn task_11() {
 // The second floor contains a hydrogen generator.
 // The third floor contains a lithium generator.
 // The fourth floor contains nothing relevant.";
-
-    let input = "The first floor contains a thulium generator, a thulium-compatible microchip, a plutonium generator, a strontium generator, a elerium generator, a elerium-compatible microchip, a dilithium generator, and a dilithium-compatible microchip.
+    let input = "The first floor contains a thulium generator, a thulium-compatible microchip, a plutonium generator, a strontium generator, a elerium generator, a elerium-compatible microchip, a dilithium generator, and a dilithium-compatible microchip, a emerium generator, a emerium-compatible microchip, a enerium generator, a enerium-compatible microchip, a ejerium generator, a ejerium-compatible microchip, a ekerium generator, a ekerium-compatible microchip.
 The second floor contains a plutonium-compatible microchip and a strontium-compatible microchip.
 The third floor contains a promethium generator, a promethium-compatible microchip, a ruthenium generator, and a ruthenium-compatible microchip.
 The fourth floor contains nothing relevant.";
+
+    // Anders input
+//     let input = "The first floor contains a strontium generator, a strontium-compatible microchip, a plutonium generator, and a plutonium-compatible microchip.
+// The second floor contains a thulium generator, a ruthenium generator, a ruthenium-compatible microchip, a curium generator, and a curium-compatible microchip.
+// The third floor contains a thulium-compatible microchip.
+// The fourth floor contains nothing relevant.";
+
+
     let reg = Regex::new(r"([a-zA-Z-]+) (microchip|generator)").unwrap();
     let mut state = State {
         game: vec![],
@@ -762,13 +794,24 @@ The fourth floor contains nothing relevant.";
         }
     }
 
-    #[derive(PartialEq, Eq, PartialOrd)]
+    // #[derive(PartialEq, Eq, PartialOrd)]
     struct QueueE {
         id: usize,
         steps: isize,
         score: isize,
     }
     use std::cmp;
+    impl PartialEq for QueueE {
+        fn eq(&self, other: &Self) -> bool {
+            self.score == other.score && self.steps == other.steps && self.id == other.id
+        }
+    }
+    impl Eq for QueueE { }
+    impl PartialOrd for QueueE {
+        fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
     impl Ord for QueueE {
         fn cmp(&self, other: &QueueE) -> cmp::Ordering {
             (self.score, self.steps, self.id).cmp(&(other.score, other.steps, other.id))
@@ -793,6 +836,15 @@ The fourth floor contains nothing relevant.";
     'outer: while let Some(e) = state_queue.pop() {
         let base = e.steps;
         let s_id = e.id;
+        if false
+        {
+            println!("steps for popped state: {}", base);
+            let v = state_queue.iter().map(|qe| qe.steps).collect::<Vec<_>>();
+            println!("{:?}", v);
+            println!("#{}", iters);
+            states.get(&s_id).unwrap().print();
+            println!("");
+        }
         for neigh in states.get(&s_id).unwrap().neighbours() {
             let neigh_id = neigh.id();
             states.entry(neigh_id).or_insert_with(|| {
@@ -800,16 +852,16 @@ The fourth floor contains nothing relevant.";
                 n.generate_neighbours();
                 if neigh.is_done() {
                     println!("iters: {}", iters);
-                    println!("{}", -base + 1);
+                    println!("{}", base + 1);
                     panic!();
                 }
                 n
             });
 
-            let mut prev = table.entry(neigh_id).or_insert(-99999);
-            if *prev < base - 1 {
-                *prev = base - 1;
-                let score = *prev;// + neigh.game.iter().map(|&(_, n)| n as isize).sum::<isize>();
+            let mut prev = table.entry(neigh_id).or_insert(99999);
+            if *prev > base + 1 {
+                *prev = base + 1;
+                let score = *prev;
                 let e = QueueE {
                     id: neigh_id,
                     steps: *prev,
@@ -938,7 +990,7 @@ pub fn task_13() {
     }
     fn is_space(t: (usize, usize)) -> bool {
         let (x, y) = t;
-        let input = 1362;
+        let input = 1364;
         let f = x * x + 3 * x + 2 * x * y + y + y * y + input;
         f.count_ones() % 2 == 0
     }
@@ -982,4 +1034,906 @@ pub fn task_13() {
 
         queue_i += 1;
     }
+}
+
+extern crate rayon;
+
+pub fn task_14() {
+    const SALT: &'static str = "ihaygndm";
+    // const SALT: &'static str = "abc";
+
+    fn u8s_to_string(s: &[u8]) -> [u8; 32] {
+        fn u8_to_hex(b: u8) -> (u8, u8) {
+            fn helper(b: u8) -> u8 {
+                if b < 10 {
+                    (b + b'0')
+                } else {
+                    (b - 10 + b'a')
+                }
+            }
+            let x = (b & 0xf0) >> 4;
+            let y = b & 0xf;
+            (helper(x), helper(y))
+        }
+
+        let mut ret = [0; 32];
+        for (i, &b) in s.iter().enumerate() {
+            let (x, y) = u8_to_hex(b);
+            ret[2 * i] = x;
+            ret[2 * i + 1] = y;
+        }
+        ret
+    }
+
+    use self::rayon::prelude::*;
+    fn extend_hash_to(hashes: &mut Vec<[u8; 32]>, n: usize) {
+        if hashes.len() < (n + 1) {
+            let mut new_hashes = vec![];
+            (hashes.len()..(n + 1)).into_par_iter().map(|i| {
+                let mut digest = Md5::new();
+                let hash = {
+                    let key = format!("{}{}", SALT, i);
+                    let mut buff  = [0; 16];
+                    digest.input(&key.as_bytes());
+                    digest.result(&mut buff);
+                    digest.reset();
+                    for _ in 0..2016 {
+                        let inp = u8s_to_string(&buff);
+                        digest.input(&inp);
+                        digest.result(&mut buff);
+                        digest.reset();
+                    }
+                    buff
+                };
+                u8s_to_string(&hash)
+            }).collect_into(&mut new_hashes);
+            hashes.extend(new_hashes);
+        }
+    };
+
+    let mut hashes = Vec::new();
+    let mut matches_found = 0;
+    let mut i = 1;
+    while matches_found < 64 {
+        extend_hash_to(&mut hashes, i);
+        let hash = hashes[i].clone();
+        let mut triple = hash.windows(3)
+            .filter_map(|s| {
+                if s[0] == s[1] && s[1] == s[2] {
+                    Some(s[0])
+                } else {
+                    None
+                }
+            });
+        if let Some(c) = triple.next() {
+            extend_hash_to(&mut hashes, i + 1000);
+            for j in (i + 1)..(i + 1001) {
+                let hash5 = hashes[j];
+                if hash5.windows(5).filter(|s| s.iter().all(|&d| d == c)).next().is_some() {
+                    matches_found += 1;
+                    println!("[{:2}] Match at index {}, matching at {} ({})", matches_found, i, j, c);
+                    break;
+                }
+            }
+        }
+        i += 1;
+    }
+}
+
+pub fn task_15() {
+
+    let input = "Disc #1 has 5 positions; at time=0, it is at position 2.
+Disc #2 has 13 positions; at time=0, it is at position 7.
+Disc #3 has 17 positions; at time=0, it is at position 10.
+Disc #4 has 3 positions; at time=0, it is at position 2.
+Disc #5 has 19 positions; at time=0, it is at position 9.
+Disc #6 has 7 positions; at time=0, it is at position 0.
+Disc #7 has 11 positions; at time=0, it is at position 0.";
+
+    struct Disk {
+        size: usize,
+        pos: usize,
+    }
+    impl Disk {
+        fn next(&mut self) {
+            self.pos += 1;
+            if self.pos == self.size {
+                self.pos = 0;
+            }
+        }
+
+        fn advance_to(&mut self, n: usize) {
+            self.pos += n;
+            if self.pos >= self.size {
+                self.pos = self.pos % self.size;
+            }
+        }
+
+        fn from_str(s: &str) -> Self {
+            let s = &s[..s.len() - 1];
+            let mut words = s.split(" ");
+            let size = words.nth(3).unwrap().parse::<usize>().unwrap();
+            let pos  = words.nth(7).unwrap().parse::<usize>().unwrap();
+
+            Disk {
+                size: size,
+                pos: pos,
+            }
+        }
+    }
+    let mut disks = input.lines().map(Disk::from_str).collect::<Vec<_>>();
+    for (i, ref mut disk) in disks.iter_mut().enumerate() {
+        disk.advance_to(i + 1);
+    }
+    for time in 0.. {
+        if disks.iter().all(|d| d.pos == 0) {
+            println!("Time {}", time);
+            break;
+        }
+        disks.iter_mut().map(Disk::next).count();
+    }
+}
+
+pub fn task_16() {
+    fn step(a: &mut Vec<bool>) {
+        let b: Vec<bool> = a.iter().rev().map(|b| !b).collect();
+        a.push(false);
+        a.extend(b);
+    }
+    fn checksum(a: &[bool]) -> Vec<bool> {
+        let mut v = Vec::with_capacity(a.len() / 2);
+        a.chunks(2).map(|slice| {
+            v.push(slice[0] == slice[1])
+        }).count();
+        if v.len() % 2 == 0 {
+            checksum(&v)
+        } else {
+            v
+        }
+    }
+    let input = "10001001100000001";
+    let mut vec = input.chars().map(|c| c == '1').collect::<Vec<bool>>();
+    // let target_len = 272;
+    let target_len = 35651584;
+    while vec.len() < target_len {
+        step(&mut vec);
+    }
+    let checksum = checksum(&vec[..target_len])
+        .iter()
+        .cloned()
+        .map(|b| if b { '1' } else { '0' })
+        .collect::<String>();
+    println!("{}", checksum);
+}
+
+pub fn task_17() {
+    #[derive(Copy, Clone)]
+    struct Room {
+        x: usize,
+        y: usize
+    };
+    impl Room {
+        fn start() -> Self {
+            Room {
+                x: 0,
+                y: 0,
+            }
+        }
+        fn is_vault(&self) -> bool {
+            self.x == 3 && self.y == 3
+        }
+        fn up(&self)    -> Self { Room { x: self.x, y: self.y - 1 } }
+        fn down(&self)  -> Self { Room { x: self.x, y: self.y + 1 } }
+        fn left(&self)  -> Self { Room { x: self.x - 1, y: self.y } }
+        fn right(&self) -> Self { Room { x: self.x + 1, y: self.y } }
+    }
+    fn is_open(b: u8) -> bool {
+        b > 10
+    }
+
+    struct Queue<T> {
+        v: Vec<T>,
+        i: usize
+    }
+
+    impl<T> Queue<T>
+    where T: Clone {
+        fn new() -> Self {
+            Queue {
+                v: Vec::new(),
+                i: 0
+            }
+        }
+
+        fn next(&mut self) -> T {
+            self.v.remove(0)
+        }
+
+        fn push(&mut self, e: T) {
+            self.v.push(e);
+        }
+
+        fn len(&self) -> usize {
+            self.v.len() - self.i
+        }
+    }
+
+    fn longest(room: Room, passcode: &mut Vec<u8>, n: &mut usize) {
+        let mut digest = Md5::new();
+        if room.is_vault() {
+            if passcode.len() > *n {
+                *n = passcode.len();
+            }
+            return;
+        }
+        let mut buffer = [0; 16];
+        let (up, down, left, right) = {
+            digest.input(&passcode);
+            digest.result(&mut buffer);
+            digest.reset();
+            (buffer[0] >> 4,
+             buffer[0] & 0xf,
+             buffer[1] >> 4,
+             buffer[1] & 0xf)
+        };
+        if is_open(up) && room.y > 0 {
+            passcode.push(b'U');
+            longest(room.up(), passcode, n);
+            passcode.pop();
+        }
+        if is_open(down) && room.y < 3 {
+            passcode.push(b'D');
+            longest(room.down(), passcode, n);
+            passcode.pop();
+        }
+        if is_open(left) && room.x > 0 {
+            passcode.push(b'L');
+            longest(room.left(), passcode, n);
+            passcode.pop();
+        }
+        if is_open(right) && room.x < 3 {
+            passcode.push(b'R');
+            longest(room.right(), passcode, n);
+            passcode.pop();
+        }
+    }
+
+    fn shortest(passcode: Vec<u8>) {
+        let mut q = Queue::new();
+        q.push((Room::start(), passcode.clone()));
+        let mut digest = Md5::new();
+        while q.len() > 0 {
+            let (room, mut passcode) = q.next();
+            if room.is_vault() {
+                for &c in passcode.iter() {
+                    print!("{}", c as char);
+                }
+                print!("\n");
+                return;
+            }
+            let mut buffer = [0; 16];
+            let (up, down, left, right) = {
+                digest.input(&passcode);
+                digest.result(&mut buffer);
+                digest.reset();
+                (buffer[0] >> 4,
+                 buffer[0] & 0xf,
+                 buffer[1] >> 4,
+                 buffer[1] & 0xf)
+            };
+            if is_open(up) && room.y > 0 {
+                let mut passcode = passcode.clone();
+                passcode.push(b'U');
+                q.push((room.up(), passcode));
+            }
+            if is_open(down) && room.y < 3 {
+                let mut passcode = passcode.clone();
+                passcode.push(b'D');
+                q.push((room.down(), passcode));
+            }
+            if is_open(left) && room.x > 0 {
+                let mut passcode = passcode.clone();
+                passcode.push(b'L');
+                q.push((room.left(), passcode));
+            }
+            if is_open(right) && room.x < 3 {
+                let mut passcode = passcode.clone();
+                passcode.push(b'R');
+                q.push((room.right(), passcode));
+            }
+        }
+        println!("No more rooms.");
+    }
+
+    if false
+    {
+        let passcode = "ulqzkmiv".chars().map(|c| c as u8).collect::<Vec<_>>();
+        shortest(passcode);
+
+    }
+    if true
+    {
+        let mut passcode = "rrrbmfta".chars().map(|c| c as u8).collect::<Vec<_>>();
+        let mut n = 0;
+        let prelen = passcode.len();
+        longest(Room::start(), &mut passcode, &mut n);
+        println!("max len = {}", n - prelen);
+    }
+}
+
+pub fn task_18() {
+    #[derive(PartialEq, Copy, Clone)]
+    enum Tile {
+        Trap,
+        Safe,
+    };
+
+    impl Tile {
+        fn from_char(c: char) -> Option<Tile> {
+            Some(match c {
+                '.' => Tile::Safe,
+                '^' => Tile::Trap,
+                _ => return None,
+            })
+        }
+
+        fn from_traps(a: Tile, b: Tile, c: Tile) -> Self {
+            let a = a == Tile::Trap;
+            let b = b == Tile::Trap;
+            let c = c == Tile::Trap;
+            if a ^ c {
+                Tile::Trap
+            } else {
+                Tile::Safe
+            }
+        }
+    }
+
+    use std::fmt;
+    use std::fmt::{Display, Formatter, Write};
+    impl Display for Tile {
+        fn fmt(&self, fmt: &mut Formatter) -> Result<(), fmt::Error>{
+            match *self {
+                Tile::Trap => fmt.write_char('^'),
+                Tile::Safe => fmt.write_char('.'),
+            };
+            Ok(())
+        }
+    }
+
+    fn next_row(row: &[Tile]) -> Vec<Tile> {
+        let mut v = vec![];
+        v.push({
+            let fst = row[0];
+            let snd = row[1];
+            Tile::from_traps(Tile::Safe, fst, snd)
+        });
+        v.extend(row.windows(3).map(|c| Tile::from_traps(c[0], c[1], c[2])));
+        v.push({
+            let n = row.len();
+            let fst = row[n - 2];
+            let snd = row[n - 1];
+            Tile::from_traps(fst, snd, Tile::Safe)
+        });
+        v
+    }
+
+    let input = "......^.^^.....^^^^^^^^^...^.^..^^.^^^..^.^..^.^^^.^^^^..^^.^.^.....^^^^^..^..^^^..^^.^.^..^^..^^^..";
+    let rows = 400_000;
+
+    let mut line = input.chars().flat_map(Tile::from_char).collect::<Vec<_>>();
+    let mut num_safe = 0;
+    for _ in 0..rows {
+        num_safe += line.iter().filter(|&&t| t == Tile::Safe).count();
+        let next = next_row(&line);
+        line = next;
+    }
+    println!("Number of safe tiles: {}", num_safe);
+}
+
+pub fn task_19() {
+    fn run(input: usize) -> usize {
+        let pow = input.next_power_of_two() >> 1;
+        let diff = input - pow;
+        1 + 2 * diff
+    }
+
+    fn make_table(n: usize) -> (Vec<usize>, Vec<usize>) {
+        let mut vec = vec![vec![2, 4], vec![2]];
+        while *vec[0].last().unwrap() < n {
+            // Add a new layer
+            let bottom = vec.last().unwrap()[0];
+            vec.push(vec![bottom << 1]);
+            let height = vec.len();
+            for i in 0..height - 1 {
+                let y = height - 2 - i;
+                let x = i + 1;
+                let next = vec[y][x - 1] + vec[y + 1][x - 1];
+                vec[y].push(next);
+            }
+        }
+        let a = vec.remove(0);
+        let mut b = vec.remove(0);
+        b.iter_mut().map(|n| *n = *n + 1).count();
+        (a, b)
+    }
+
+    fn run2(input: usize) -> usize {
+        let input = input;
+        let (a, b) = make_table(input);
+        let an = a.iter().take_while(|&&n| n <= input).last().unwrap_or(&a[0]);
+        let bn = b.iter().take_while(|&&n| n < input).last().unwrap_or(&b[0]);
+        let count_ones = an > bn;
+        if count_ones {
+            input - an + 1
+        } else {
+            (input - bn + 1) * 2 + bn - an
+        }
+    }
+
+    assert_eq!(run2(4), 1);
+    assert_eq!(run2(5), 2);
+    assert_eq!(run2(10), 1);
+    assert_eq!(run2(28), 1);
+    assert_eq!(run2(82), 1);
+
+    let input = 3014387;
+    println!("{}", run2(input));
+}
+
+use std;
+
+pub fn task_20() {
+    #[derive(PartialEq, Eq, Ord, PartialOrd, Debug, Clone, Copy)]
+    struct Interval {
+        from: i64,
+        to: i64,
+    }
+
+    impl Interval {
+        fn can_join(&self, other: Self) -> bool {
+            self.from <= other.from &&
+                self.to + 1 >= other.from
+        }
+
+        fn join(&self, other: Self) -> Self {
+            use std::cmp::{max, min};
+            let from = min(self.from, other.from);
+            let to = max(self.to, other.to);
+            Interval {
+                from: from,
+                to: to,
+            }
+        }
+
+        fn size(&self) -> usize {
+            (self.to - self.from + 1) as usize
+        }
+
+        fn null() -> Self {
+            Interval {
+                from: 0,
+                to: 0,
+            }
+        }
+
+        fn max() -> Self {
+            Interval {
+                from: 4294967296,
+                to: 4294967296,
+            }
+        }
+
+        fn min() -> Self {
+            Interval {
+                from: -1,
+                to: -1,
+            }
+        }
+    }
+
+
+    impl std::str::FromStr for Interval {
+        type Err = ();
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let mut nums = s.split("-").flat_map(|n| n.parse());
+            let a = nums.next().ok_or(())?;
+            let b = nums.next().ok_or(())?;
+            Ok(Interval {
+                from: a,
+                to: b,
+            })
+        }
+    }
+    let input = read_input("day-20").unwrap();
+//     let input = "5-8
+// 0-2
+// 4-7";
+
+    let mut intervals = input.lines()
+        .flat_map(|l| l.parse::<Interval>())
+        .collect::<Vec<_>>();
+    intervals.insert(0, Interval::min());
+    intervals.push(Interval::max());
+    intervals.sort();
+    let merged_intervals = {
+        let (mut v, last) = intervals.iter()
+            .skip(1)
+            .fold((vec![], intervals[0]), |(mut vec, prev), &curr| {
+                print!("{:?} {:?}", prev, curr);
+                let next = if prev.can_join(curr) {
+                    println!(" yes");
+                    prev.join(curr)
+                } else {
+                    println!(" no");
+                    vec.push(prev);
+                    curr
+                };
+                (vec, next)
+            });
+        v.push(last);
+        v
+    };
+    println!("{:?}", merged_intervals);
+    let holes = merged_intervals.as_slice()
+        .windows(2)
+        .map(|s| {
+            Interval {
+                from: s[0].to + 1,
+                to: s[1].from - 1,
+            }
+        });
+    // if let Some(hole) = holes.next() {
+    //     println!("First: {}", hole.from);
+
+    // } else  {
+    //     println!("No holes");
+    // }
+    let num_allowed = holes.map(|h| h.size()).sum::<usize>();
+    println!("number of allowed IPs: {}", num_allowed);
+}
+
+pub fn task_21() {
+    #[derive(Debug, Copy, Clone)]
+    enum Action {
+        SwapPos(usize, usize),
+        SwapLetter(u8, u8),
+        RotateLeft(usize),
+        RotateRight(usize),
+        RotateFromChar(u8),
+        Reverse(usize, usize),
+        Move(usize, usize),
+    }
+
+    impl Action {
+        fn exec(self, s: &mut [u8]) -> &mut [u8]{
+            match self {
+                Action::SwapPos(a, b) => {
+                    let tmp = s[a];
+                    s[a] = s[b];
+                    s[b] = tmp;
+                }
+                Action::SwapLetter(a, b) => {
+                    for c in s.iter_mut() {
+                        if *c == a {
+                            *c = b;
+                        } else if *c == b {
+                            *c = a;
+                        }
+                    }
+                }
+                Action::RotateLeft(n) => {
+                    let mut buffer = Vec::with_capacity(s.len());
+                    for &c in s.iter().cycle().skip(n).take(s.len()) {
+                        buffer.push(c);
+                    }
+                    for i in 0..buffer.len() {
+                        s[i] = buffer[i];
+                    }
+                }
+                Action::RotateRight(mut n) => {
+                    let mut buffer = Vec::with_capacity(s.len());
+                    if n > s.len() {
+                        n -= s.len();
+                    }
+                    for &c in s.iter().cycle().skip(s.len() - n).take(s.len()) {
+                        buffer.push(c);
+                    }
+                    for i in 0..buffer.len() {
+                        s[i] = buffer[i];
+                    }
+                }
+                Action::RotateFromChar(c) => {
+                    let pos = s.iter().position(|&ch| ch == c)
+                        .expect(&format!("Failed to find char {}!", c as char));
+                    let rots = if pos >= 4 { pos + 2 } else { pos + 1 };
+                    Action::RotateRight(rots).exec(s);
+                }
+                Action::Reverse(a, b) => {
+                    let mut buffer = Vec::with_capacity(b - a + 1);
+                    for i in a..(b + 1) {
+                        buffer.push(s[i]);
+                    }
+                    for i in a..(b + 1) {
+                        s[i] = buffer[buffer.len() - 1 - (i - a)];
+                    }
+                }
+                Action::Move(a, b) => {
+                    let mut buffer = Vec::with_capacity(s.len());
+                    let c = s[a];
+                    for i in 0..a {
+                        buffer.push(s[i]);
+                    }
+                    for i in (a + 1)..s.len() {
+                        buffer.push(s[i]);
+                    }
+                    for i in 0..b {
+                        s[i] = buffer[i];
+                    }
+                    s[b] = c;
+                    for i in (b + 1)..s.len() {
+                        s[i] = buffer[i - 1];
+                    }
+                }
+            }
+            s
+        }
+
+        fn reverse(self, s: &[u8]) -> Self {
+            match self {
+                Action::RotateLeft(a) => Action::RotateRight(a),
+                Action::RotateRight(a) => Action::RotateLeft(a),
+                Action::RotateFromChar(c) => {
+                    // Find the string such that self.exec() returns `s`
+                    let mut slice = Vec::new();
+                    slice.extend_from_slice(s);
+                    for num_rotations in 0..s.len() {
+                        let mut copy = slice.iter().cloned().collect::<Vec<_>>();
+                        if self.exec(&mut copy) == s {
+                            return Action::RotateLeft(num_rotations);
+                        }
+                        Action::RotateLeft(1).exec(&mut slice);
+                    }
+                    unreachable!();
+                }
+                Action::Move(a, b) => Action::Move(b, a),
+                _ => self
+            }
+        }
+    }
+
+    use std::str::FromStr;
+    impl FromStr for Action {
+        type Err = ();
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let mut split = s.split(" ");
+            match split.next().unwrap() {
+                "swap" => {
+                    let t = split.next().unwrap();
+                    let a = split.next().unwrap();
+                    let b = split.skip(2).next().unwrap();
+                    match t {
+                        "position" => {
+                            let a = a.parse::<usize>().unwrap();
+                            let b = b.parse::<usize>().unwrap();
+                            Ok(Action::SwapPos(a, b))
+                        },
+                        "letter" => {
+                            let a = a.chars().next().unwrap();
+                            let b = b.chars().next().unwrap();
+                            Ok(Action::SwapLetter(a as u8, b as u8))
+
+                        }
+                        _ => Err(())
+                    }
+                },
+                "rotate" => {
+                    match split.next().unwrap() {
+                        "left" => {
+                            let n = split.next().unwrap().parse::<usize>().unwrap();
+                            Ok(Action::RotateLeft(n))
+                        },
+                        "right" => {
+                            let n = split.next().unwrap().parse::<usize>().unwrap();
+                            Ok(Action::RotateRight(n))
+                        },
+                        "based" => {
+                            let c = split.last().unwrap().chars().next().unwrap();
+                            Ok(Action::RotateFromChar(c as u8))
+                        },
+                        _ => Err(())
+                    }
+                },
+                "reverse" => {
+                    let _ = split.next();
+                    let a = split.next().unwrap().parse::<usize>().unwrap();
+                    let b = split.skip(1).next().unwrap().parse::<usize>().unwrap();
+                    Ok(Action::Reverse(a, b))
+                },
+                "move" => {
+                    let _ = split.next();
+                    let a = split.next().unwrap().parse::<usize>().unwrap();
+                    let b = split.skip(2).next().unwrap().parse::<usize>().unwrap();
+                    Ok(Action::Move(a, b))
+                },
+                _ => Err(())
+            }
+        }
+    }
+    use std::str::from_utf8;
+
+
+    let input = read_input("day-21").unwrap();
+
+    let actions = input.lines().flat_map(Action::from_str).collect::<Vec<_>>();
+    {
+        let mut start_input = b"abcdefgh".iter().cloned().collect::<Vec<_>>();
+        let mut result = actions.iter()
+            .fold(start_input.as_mut_slice(), |s, a| {
+                // println!("{:?}", a);
+                // println!("\tfrom {}", from_utf8(s).unwrap());
+                a.exec(s);
+                // println!("\tto   {}\n", from_utf8(s).unwrap());
+                s
+            });
+        println!("{}", from_utf8(result).unwrap());
+    }
+    {
+        let mut unscramble = b"fbgdceah".iter().cloned().collect::<Vec<_>>();
+        let result = actions.iter()
+            .rev()
+            .fold(unscramble.as_mut_slice(), |s, a| {
+                // println!("{:?}", a);
+                // println!("\tfrom {}", from_utf8(s).unwrap());
+                a.reverse(s).exec(s);
+                // println!("\tto   {}\n", from_utf8(s).unwrap());
+                s
+            });
+        println!("{}", from_utf8(result).unwrap());
+    }
+}
+
+pub fn task_22() {
+    #[derive(Debug)]
+    struct Node {
+        x: usize,
+        y: usize,
+        size: usize,
+        used: usize,
+        avail: usize,
+        use_percent: usize,
+    }
+    let re = Regex::new(r"/dev/grid/node-x(\d+)-y(\d+)\s+(\d+)T\s+(\d+)T\s+(\d+)T\s+(\d+)%").unwrap();
+    let input = read_input("day-22").unwrap();
+
+    let mut nodes = vec![];
+    for line in input.lines() {
+        if let Some(caps) = re.captures(line) {
+            let mut caps = caps.iter().skip(1).map(|d| d.unwrap().parse::<usize>().unwrap());
+            nodes.push(Node {
+                x: caps.next().unwrap(),
+                y: caps.next().unwrap(),
+                size: caps.next().unwrap(),
+                used: caps.next().unwrap(),
+                avail: caps.next().unwrap(),
+                use_percent: caps.next().unwrap(),
+            });
+        }
+    }
+
+    let mut num_pairs = 0;
+    let n = nodes.len();
+    for i in 0..n {
+        if nodes[i].used == 0 {
+            continue;
+        }
+        for j in 0..n {
+            if i == j {
+                continue;
+            }
+            if nodes[i].used <= nodes[j].avail {
+                num_pairs += 1;
+            }
+        }
+    }
+    println!("{:?}", num_pairs);
+}
+
+pub fn task_23() {
+    enum Op<'a> {
+        Reg(&'a str),
+        Val(i32)
+    };
+    impl<'a> Op<'a> {
+        fn make(s: &'a str) -> Self {
+            s.parse::<i32>().map(Op::Val).unwrap_or(Op::Reg(s))
+        }
+
+        fn value(&self, env: &HashMap<&str, i32>) -> i32 {
+            match self {
+                &Op::Reg(r) => env.get(r).cloned().unwrap_or(0),
+                &Op::Val(v) => v
+            }
+        }
+    }
+    enum Instruction<'a> {
+        Cpy(Op<'a>, &'a str),
+        Inc(&'a str),
+        Dec(&'a str),
+        Jnz(Op<'a>, Op<'a>),
+        Tgl(Op<'a>),
+    };
+
+    impl<'a> From<&'a str> for Instruction<'a> {
+        fn from(s: &'a str) -> Self {
+            let mut spl = s.split(" ");
+            let op = spl.next().unwrap();
+            let a = spl.next().unwrap();
+            match op {
+                "cpy" => {
+                    let b = spl.next().unwrap();
+                    let from = Op::make(a);
+                    Instruction::Cpy(from, b)
+                }
+                "inc" => Instruction::Inc(a),
+                "dec" => Instruction::Dec(a),
+                "jnz" => {
+                    let a = Op::make(a);
+                    let b = Op::make(spl.next().unwrap());
+                    Instruction::Jnz(a, b)
+                }
+                "tgl" => {
+                    Instruction::Tgl(Op::make(a))
+                }
+                _ => unreachable!()
+
+            }
+        }
+    }
+
+    let input = "cpy 2 a
+tgl a
+tgl a
+tgl a
+cpy 1 a
+dec a
+dec a";
+
+    let mut registers = HashMap::new();
+    let instructions = input.lines()
+        .map(Instruction::from)
+        .collect::<Vec<_>>();
+    let mut pc = 0i32;
+    let n_instr = instructions.len() as i32;
+    let handle_instr = |instr| {
+        match instr {
+            &Instruction::Inc(reg) => {
+                *registers.entry(reg).or_insert(0) += 1;
+            },
+            &Instruction::Dec(reg) => {
+                *registers.entry(reg).or_insert(0) -= 1;
+            },
+            &Instruction::Cpy(ref from, to) => {
+                let v =from.value(&registers);
+                registers.insert(to, v);
+            },
+            &Instruction::Jnz(ref c, ref n) => {
+                if c.value(&registers) != 0 {
+                    let val = n.value(&registers);
+                    pc += val - 1;
+                }
+            },
+            &Instruction::Tgl(ref c) => {
+                let target: &Instruction = &instructions[
+                    (pc + c.value(&registers)) as usize
+                ];
+
+            }
+        }
+    };
+    while pc < n_instr {
+        match &instructions[pc as usize] {
+        pc += 1;
+    }
+    println!("a={}", registers.get("a").unwrap());
 }
