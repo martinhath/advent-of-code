@@ -473,3 +473,260 @@ c dec -10 if a >= 1
 c inc -20 if c == 10";
     println!("{}", solve_pt1(&file_to_string("input/8").unwrap()));
 }
+
+pub fn task_9() {
+    fn solve_pt1(input: &str) -> (usize, usize) {
+        let mut chars = input.chars();
+
+        let mut remove_bangs = String::new();
+        while let Some(c) = chars.next() {
+            if c == '!' {
+                chars.next();
+            } else {
+                remove_bangs.push(c);
+            }
+
+        }
+
+        let mut chars = remove_bangs.chars();
+
+        let mut remove_garbage = String::new();
+        let mut garbage_count = 0;
+        let mut is_skipping = false;
+        while let Some(c) = chars.next() {
+            if c == '<' {
+                if is_skipping {
+                    garbage_count += 1;
+                }
+                is_skipping = true;
+            } else if c == '>' {
+                is_skipping = false;
+            } else if !is_skipping {
+                remove_garbage.push(c);
+            } else {
+                garbage_count += 1;
+            }
+        }
+
+        let mut chars = remove_garbage.chars();
+
+        let mut remove_rest = String::new();
+        while let Some(c) = chars.next() {
+            if c == '{' || c == '}' {
+                remove_rest.push(c);
+            }
+        }
+
+        let mut sum = 0;
+        let mut level = 1;
+        let mut chars = remove_rest.chars();
+        while let Some(c) = chars.next() {
+            match c {
+                '{' => {
+                    sum += level;
+                    level += 1;
+                }
+                '}' => {
+                    level -= 1;
+                }
+                c => panic!("should not get '{}' here!", c),
+            }
+        }
+        (sum, garbage_count)
+    }
+
+    //     let test = "{}
+    // {{{}}}
+    // {{},{}}
+    // {{{},{},{{}}}}
+    // {<a>,<a>,<a>,<a>}
+    // {{<ab>},{<ab>},{<ab>},{<ab>}}
+    // {{<!!>},{<!!>},{<!!>},{<!!>}}
+    // {{<a!>},{<a!>},{<a!>},{<ab>}}";
+
+    let test = "<>
+<random characters>
+<<<<>
+<{!>}>
+<!!>
+<!!!>>
+<{o\"i!a,<{i<a>";
+
+    for line in test.lines() {
+        println!("{:?}", solve_pt1(line));
+    }
+
+    println!("{:?}", solve_pt1(&file_to_string("input/9").unwrap()));
+}
+
+pub fn task_10() {
+    fn solve_pt1(n: usize, steps: &[usize]) {
+        let mut numbers = Vec::with_capacity(n as usize);
+        for i in 0..n {
+            numbers.push(i);
+        }
+        let mut pos = 0;
+        let mut skip = 0;
+        for &step in steps {
+            let mut copy = numbers
+                .iter()
+                .cycle()
+                .skip(pos)
+                .take(step)
+                .cloned()
+                .collect::<Vec<_>>();
+            copy.reverse();
+
+            if pos + step >= n {
+                // wrap around case
+                let copy = {
+                    let last = copy.iter().take(n - pos);
+                    let first = copy.iter().skip(n - pos);
+                    let rest = numbers.iter().skip((step + pos) - n).take(n - step);
+                    first
+                        .cloned()
+                        .chain(rest.cloned())
+                        .chain(last.cloned())
+                        .collect()
+                };
+                numbers = copy;
+            } else {
+                numbers.iter_mut().skip(pos).zip(copy.iter()).for_each(
+                    |(p, n)| {
+                        *p = *n
+                    },
+                );
+            }
+            pos = (pos + step + skip) % n;
+            skip += 1;
+        }
+        println!("{:?}", numbers);
+    }
+
+    fn solve_pt2(input: &str) {
+        let mut lengths = input.as_bytes().iter().cloned().collect::<Vec<u8>>();
+        lengths.extend(&[17, 31, 73, 47, 23]);
+
+        let n = 256;
+        let mut numbers = Vec::with_capacity(n);
+        for i in 0..n {
+            numbers.push(i);
+        }
+
+        let mut pos = 0;
+        let mut skip = 0;
+        for _ in 0..64 {
+            for &length in lengths.iter() {
+                let l = length as usize;
+                let mut copy = numbers
+                    .iter()
+                    .cycle()
+                    .skip(pos)
+                    .take(l)
+                    .cloned()
+                    .collect::<Vec<_>>();
+                copy.reverse();
+
+                if pos + l >= n {
+                    // wrap around case
+                    let copy = {
+                        let last = copy.iter().take(n - pos);
+                        let first = copy.iter().skip(n - pos);
+                        let rest = numbers.iter().skip((l + pos) - n).take(n - l);
+                        first
+                            .cloned()
+                            .chain(rest.cloned())
+                            .chain(last.cloned())
+                            .collect()
+                    };
+                    numbers = copy;
+                } else {
+                    numbers.iter_mut().skip(pos).zip(copy.iter()).for_each(
+                        |(p, n)| {
+                            *p = *n
+                        },
+                    );
+                }
+                pos = (pos + l + skip) % n;
+                skip += 1;
+            }
+        }
+        let dense = numbers
+            .chunks(16)
+            .map(|chunk| chunk.iter().fold(0, ::std::ops::BitXor::bitxor))
+            .collect::<Vec<_>>();
+        for byte in &dense {
+            print!("{:02x}", byte);
+        }
+        println!();
+    }
+
+    // solve_pt1(256, &[34,88,2,222,254,93,150,0,199,255,39,32,137,136,1,167]);
+    solve_pt2("34,88,2,222,254,93,150,0,199,255,39,32,137,136,1,167");
+}
+
+pub fn task_11() {
+    fn solve_pt1(input: &str) -> i32 {
+        let dirs = input.trim().split(",");
+        // Dirs: a = n-s, b = nw-se, c = ne - sw
+        let mut a = 0i32;
+        let mut b = 0i32;
+        let mut c = 0i32;
+        for dir in dirs {
+            match dir {
+                "n" =>  a += 1,
+                "nw" => b += 1,
+                "ne" => c += 1,
+                "s" =>  a -= 1,
+                "sw" => c -= 1,
+                "se" => b -= 1,
+                e => panic!("what about '{}'?", e),
+            }
+        }
+        let x = c - b;
+        let y = a + b + c;
+        let xa = x.abs();
+        let ya = y.abs();
+        if xa >= ya { 
+            xa
+        } else {
+            xa + (ya - xa) / 2
+        }
+    }
+
+    fn solve_pt2(input: &str) -> i32 {
+        let dirs = input.trim().split(",");
+        // Dirs: a = n-s, b = nw-se, c = ne - sw
+        let mut a = 0i32;
+        let mut b = 0i32;
+        let mut c = 0i32;
+        let mut max_dist = 0;
+        for dir in dirs {
+            match dir {
+                "n" => a += 1,
+                "nw" => b += 1,
+                "ne" => c += 1,
+                "s" => a -= 1,
+                "sw" => c -= 1,
+                "se" => b -= 1,
+                e => panic!("what about '{}'?", e),
+            }
+            let dist = {
+                let x = c - b;
+                let y = a + b + c;
+                let xa = x.abs();
+                let ya = y.abs();
+                if xa >= ya { xa } else { xa + (ya - xa) / 2 }
+
+            };
+            max_dist = max_dist.max(dist);
+        }
+        max_dist
+    }
+    assert_eq!(solve_pt1("ne,ne,ne"), 3);
+    assert_eq!(solve_pt1("ne,ne,sw,sw"), 0);
+    assert_eq!(solve_pt1("ne,ne,s,s"), 2);
+    assert_eq!(solve_pt1("se,sw,se,sw,sw"), 3);
+
+    println!("{}", solve_pt2(&file_to_string("input/11").unwrap()));
+}
