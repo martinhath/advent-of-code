@@ -1,5 +1,4 @@
-// #![feature(test)]
-// extern crate test;
+#![feature(vec_remove_item)]
 
 extern crate regex;
 extern crate crypto;
@@ -27,6 +26,14 @@ fn main() {
         9 => tasks::task_9(),
         10 => tasks::task_10(),
         11 => tasks::task_11(),
+        12 => tasks::task_12(),
+        13 => tasks::task_13(),
+        14 => tasks::task_14(),
+        15 => tasks::task_15(),
+        16 => tasks::task_16(),
+        17 => tasks::task_17(),
+        18 => tasks::task_18(),
+        19 => tasks::task_19(),
         _ => {unreachable!()}
     }
 }
