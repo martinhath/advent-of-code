@@ -1618,17 +1618,29 @@ pub fn task_19() {
                 return letters;
             } else if nexts.len() == 1 {
                 match nexts[0] {
-                    Dir::U => { came_from = Dir::D; y -= 1 },
-                    Dir::D => { came_from = Dir::U; y += 1 },
-                    Dir::L => { came_from = Dir::R; x -= 1 },
-                    Dir::R => { came_from = Dir::L; x += 1 },
+                    Dir::U => {
+                        came_from = Dir::D;
+                        y -= 1
+                    }
+                    Dir::D => {
+                        came_from = Dir::U;
+                        y += 1
+                    }
+                    Dir::L => {
+                        came_from = Dir::R;
+                        x -= 1
+                    }
+                    Dir::R => {
+                        came_from = Dir::L;
+                        x += 1
+                    }
                 }
             } else {
                 match came_from {
-                    Dir::U => { y += 1 },
-                    Dir::D => { y -= 1 }
-                    Dir::L => { x += 1 }
-                    Dir::R => { x -= 1 }
+                    Dir::U => y += 1,
+                    Dir::D => y -= 1,
+                    Dir::L => x += 1,
+                    Dir::R => x -= 1,
                 }
             }
             if grid[y][x].is_alphabetic() {
@@ -1650,3 +1662,285 @@ pub fn task_19() {
 
     println!("'{}'", solve_pt1(&real));
 }
+
+pub fn task_20() {
+    #[derive(Debug, Clone)]
+    struct Particle {
+        pos: [i64; 3],
+        vel: [i64; 3],
+        acc: [i64; 3],
+    }
+
+    fn parse_input(input: &str) -> Vec<Particle> {
+        let mut v = Vec::new();
+        use std::str::{self, FromStr};
+        use nom::IResult;
+
+        named!(factor<i64>,
+               map_res!( do_parse!(
+                        minus: opt!(char!('-')) >>
+                        num: take_while!(|b| b >= b'0' && b <= b'9') >>
+                        (minus, num)),
+                    (|(minus, num): (Option<char>, &[u8])|
+                     str::from_utf8(num)
+                        .map_err(|_| ())
+                        .and_then(|s| FromStr::from_str(s).map_err(|_| ()))
+                        .map(|n: i64| n * if minus.is_some() { -1 } else { 1  })
+                    )));
+
+        named!(numbers<Vec<i64>>,
+               ws!(delimited!(
+                   char!('<'),
+                   separated_nonempty_list!(
+                           char!(','),
+                           preceded!(opt!(char!(' ')), factor)),
+                   char!('>'))));
+
+        named!(field<(&[u8], Vec<i64>)>,
+               ws!(pair!(take!(1),
+                    preceded!(char!('='), numbers)
+               )));
+
+        named!(fields<Vec<(&[u8], Vec<i64>)>>, ws!(separated_list_complete!(tag!(", "), field)));
+
+        for line in input.lines() {
+            let bytes: &[u8] = line.as_bytes();
+            let asd = fields(bytes);
+            if let IResult::Done(_, nums) = asd {
+                v.push(Particle {
+                    pos: [nums[0].1[0], nums[0].1[1], nums[0].1[2]],
+                    vel: [nums[1].1[0], nums[1].1[1], nums[1].1[2]],
+                    acc: [nums[2].1[0], nums[2].1[1], nums[2].1[2]],
+                });
+            }
+        }
+        v
+    }
+
+    fn solve_pt1(mut ps: Vec<Particle>) -> usize {
+        const N: usize = 10_000;
+        for i in 0..N {
+            for p in ps.iter_mut() {
+                p.vel[0] += p.acc[0];
+                p.vel[1] += p.acc[1];
+                p.vel[2] += p.acc[2];
+                p.pos[0] += p.vel[0];
+                p.pos[1] += p.vel[1];
+                p.pos[2] += p.vel[2];
+            }
+        }
+        ps.iter()
+            .enumerate()
+            .min_by_key(|&(_i, p)| p.pos[0].abs() + p.pos[1].abs() + p.pos[2].abs())
+            .map(|(i, _p)| i)
+            .unwrap()
+    }
+
+    fn solve_pt2(ps: Vec<Particle>) -> usize {
+        const N: usize = 100_000;
+        let mut ps = ps.into_iter().map(Some).collect::<Vec<Option<Particle>>>();
+        let mut place = HashMap::new();
+        for _ in 0..N {
+            for (i, ref mut p) in ps.iter_mut().enumerate().flat_map(
+                |(i, o)| o.as_mut().map(|p| (i, p)),
+            )
+            {
+                p.vel[0] += p.acc[0];
+                p.vel[1] += p.acc[1];
+                p.vel[2] += p.acc[2];
+                p.pos[0] += p.vel[0];
+                p.pos[1] += p.vel[1];
+                p.pos[2] += p.vel[2];
+                place.entry(p.pos).or_insert_with(|| Vec::new()).push(i);
+            }
+            for (_place, inds) in &place {
+                if inds.len() > 1 {
+                    for &i in inds {
+                        ps[i] = None;
+                    }
+                }
+            }
+            place.clear();
+        }
+        ps.iter().flat_map(|i| i).count()
+    }
+
+
+    let test = "p=< 3,0,0>, v=< 2,0,0>, a=<-1,0,0>
+p=< 4,0,0>, v=< 0,0,0>, a=<-2,0,0>";
+
+    let real = &file_to_string("input/20").unwrap();
+    // let res = solve_pt1(parse_input(real));
+    let res = solve_pt2(parse_input(real));
+    println!("{}", res);
+}
+
+pub fn task_21() {
+    #[derive(Hash, PartialEq, Eq, Clone, Debug)]
+    struct Pattern {
+        buffer: Vec<char>,
+    }
+
+    impl Pattern {
+        fn size(&self) -> usize {
+            let n = self.buffer.len();
+            (n as f64).sqrt() as usize
+        }
+
+        fn from_str(s: &str) -> Self {
+            let buffer = s.chars().filter(|&c| c == '.' || c == '#').collect();
+            Self { buffer }
+        }
+
+        fn rotate(&self) -> Self {
+            let ind = |n, x, y| y * n + x;
+            let mut new_buffer = vec!['.'; self.buffer.len()];
+            let s = self.size();
+            for j in 0..s {
+                for i in 0..s {
+                    let a = ind(s, i, s - j - 1);
+                    let b = ind(s, j, i);
+                    new_buffer[a] = self.buffer[b];
+                }
+            }
+            Pattern { buffer: new_buffer }
+        }
+
+        fn get(&self, x: usize, y: usize) -> char {
+            let s = self.size();
+            self.buffer[y * s + x]
+        }
+
+        fn mirror(&self) -> Self {
+            let ind = |n, x, y| y * n + x;
+            let mut new_buffer = vec!['.'; self.buffer.len()];
+            let s = self.size();
+            for j in 0..s {
+                for i in 0..s {
+                    let a = ind(s, j, i);
+                    let b = ind(s, s - 1 - j, i);
+                    new_buffer[a] = self.buffer[b];
+                }
+            }
+            Pattern { buffer: new_buffer }
+        }
+
+        fn print(&self) {
+            let s = self.size();
+            for i in 0..self.buffer.len() {
+                print!("{}", self.buffer[i]);
+                if i % s == (s - 1) {
+                    println!();
+                }
+            }
+            println!();
+        }
+    }
+
+    fn solve_pt1(input: &str) {
+        let mut pattern = Pattern::from_str(
+            ".#.
+..#
+###",
+        );
+
+        let mut rules = HashMap::new();
+        for line in input.lines() {
+            let mut s = line.split(" => ");
+            let mut p = Pattern::from_str(s.next().unwrap());
+            let target = Pattern::from_str(s.next().unwrap());
+
+            for _ in 0..4 {
+                rules.insert(p.clone(), target.clone());
+                p = p.rotate();
+            }
+            p = p.mirror();
+            for _ in 0..4 {
+                rules.insert(p.clone(), target.clone());
+                p = p.rotate();
+            }
+        }
+        for _ in 0..18 {
+            let s = pattern.size();
+            if s % 2 == 0 {
+                let n = s / 2;
+                let mut final_buffer = vec!['X'; 3 * 3 * n * n];
+                for j in 0..s / 2 {
+                    for i in 0..s / 2 {
+                        let block = Pattern {
+                            buffer: vec![
+                            pattern.get(i * 2 + 0, j * 2 + 0),
+                            pattern.get(i * 2 + 1, j * 2 + 0),
+                            pattern.get(i * 2 + 0, j * 2 + 1),
+                            pattern.get(i * 2 + 1, j * 2 + 1),
+                        ],
+                        };
+                        let new_block = match rules.get(&block) {
+                            Some(b) => b,
+                            None => {
+                                block.print();
+                                unreachable!();
+                            }
+                        };
+
+                        let start = 3 * n * j * 3 + i * 3;
+                        for y in 0..3 {
+                            for x in 0..3 {
+                                let ind = start + x + y * 3 * n;
+                                assert_eq!(final_buffer[ind], 'X');
+                                final_buffer[ind] = new_block.buffer[3 * y + x];
+                            }
+                        }
+                    }
+                }
+                pattern = Pattern { buffer: final_buffer };
+            } else {
+                assert!(s % 3 == 0);
+                let n = s / 3;
+                let mut final_buffer = vec!['X'; 4 * 4 * n * n];
+                for j in 0..n {
+                    for i in 0..n {
+                        let block = Pattern {
+                            buffer: vec![
+                            pattern.get(i * 3 + 0, j * 3 + 0),
+                            pattern.get(i * 3 + 1, j * 3 + 0),
+                            pattern.get(i * 3 + 2, j * 3 + 0),
+                            pattern.get(i * 3 + 0, j * 3 + 1),
+                            pattern.get(i * 3 + 1, j * 3 + 1),
+                            pattern.get(i * 3 + 2, j * 3 + 1),
+                            pattern.get(i * 3 + 0, j * 3 + 2),
+                            pattern.get(i * 3 + 1, j * 3 + 2),
+                            pattern.get(i * 3 + 2, j * 3 + 2),
+                        ],
+                        };
+                        let new_block = match rules.get(&block) {
+                            Some(b) => b,
+                            None => {
+                                println!("didn't find match for block!");
+                                block.print();
+                                unreachable!();
+                            }
+                        };
+                        let start = 4 * n * j * 4 + i * 4;
+                        for y in 0..4 {
+                            for x in 0..4 {
+                                let ind = start + x + y * 4 * n;
+                                assert_eq!(final_buffer[ind], 'X');
+                                final_buffer[ind] = new_block.buffer[4 * y + x];
+                            }
+                        }
+                    }
+
+                }
+                pattern = Pattern { buffer: final_buffer };
+            }
+        }
+        println!("{} pixels are on", pattern.buffer.iter().filter(|&&c| c == '#').count());
+    }
+
+    let input = &file_to_string("input/21").unwrap();
+
+    solve_pt1(input);
+}
+
+

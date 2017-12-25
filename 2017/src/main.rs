@@ -1,10 +1,6 @@
 #![feature(vec_remove_item)]
-
-extern crate regex;
-extern crate crypto;
 #[macro_use]
-extern crate lazy_static;
-extern crate permutohedron;
+extern crate nom;
 
 use std::env;
 
@@ -34,6 +30,8 @@ fn main() {
         17 => tasks::task_17(),
         18 => tasks::task_18(),
         19 => tasks::task_19(),
+        20 => tasks::task_20(),
+        21 => tasks::task_21(),
         _ => {unreachable!()}
     }
 }
