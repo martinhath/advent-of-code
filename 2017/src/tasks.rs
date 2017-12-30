@@ -1943,4 +1943,461 @@ pub fn task_21() {
     solve_pt1(input);
 }
 
+pub fn task_22() {
+    fn solve_pt1(input: &str) -> usize {
+        let mut world: HashMap<(i32, i32), char> = HashMap::new();
+        let mut direction = (0, 1);
+        let mut position = (0, 0);
+        let input = input
+            .lines()
+            .map(|l| l.chars().collect::<Vec<_>>())
+            .collect::<Vec<_>>();
+        let n = input.len();
+        assert!(n % 2 == 1);
+        for j in 0..n {
+            for i in 0..n {
+                let y = n as i32 / 2 - (j as i32);
+                let x = -(n as i32) / 2 + i as i32;
+                world.insert((x, y), input[j][i]);
+            }
+        }
 
+        let mut bursts = 0;
+        for _ in 0..10_000 {
+            let c = *world.get(&position).unwrap_or(&'.');
+            if c == '#' {
+                // turn right
+                direction = match direction {
+                    (0, 1) => (1, 0),
+                    (1, 0) => (0, -1),
+                    (0, -1) => (-1, 0),
+                    (-1, 0) => (0, 1),
+                    _ => unreachable!(),
+                };
+                world.insert(position, '.');
+            } else {
+                direction = match direction {
+                    (0, 1) => (-1, 0),
+                    (1, 0) => (0, 1),
+                    (0, -1) => (1, 0),
+                    (-1, 0) => (0, -1),
+                    _ => unreachable!(),
+                };
+                world.insert(position, '#');
+                bursts += 1;
+            }
+            position.0 += direction.0;
+            position.1 += direction.1;
+        }
+        bursts
+    }
+
+    fn solve_pt2(input: &str) -> usize {
+        #[derive(Copy, Clone, Debug)]
+        enum State {
+            Clean,
+            Weakened,
+            Infected,
+            Flagged,
+        }
+        let mut world: HashMap<(i32, i32), State> = HashMap::new();
+        let mut direction = (0, 1);
+        let mut position = (0, 0);
+        let input = input
+            .lines()
+            .map(|l| {
+                l.chars()
+                    .map(|c| if c == '#' {
+                        State::Infected
+                    } else {
+                        State::Clean
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let n = input.len();
+        assert!(n % 2 == 1);
+        for j in 0..n {
+            for i in 0..n {
+                let y = n as i32 / 2 - (j as i32);
+                let x = -(n as i32) / 2 + i as i32;
+                world.insert((x, y), input[j][i]);
+            }
+        }
+
+        let mut bursts = 0;
+        for _ in 0..10_000_000 {
+            let c = *world.get(&position).unwrap_or(&State::Clean);
+            match c {
+                State::Clean => {
+                    direction = match direction {
+                        (0, 1) => (-1, 0),
+                        (1, 0) => (0, 1),
+                        (0, -1) => (1, 0),
+                        (-1, 0) => (0, -1),
+                        _ => unreachable!(),
+                    };
+                    world.insert(position, State::Weakened);
+                }
+                State::Weakened => {
+                    bursts += 1;
+                    world.insert(position, State::Infected);
+                }
+                State::Infected => {
+                    direction = match direction {
+                        (0, 1) => (1, 0),
+                        (1, 0) => (0, -1),
+                        (0, -1) => (-1, 0),
+                        (-1, 0) => (0, 1),
+                        _ => unreachable!(),
+                    };
+                    world.insert(position, State::Flagged);
+                }
+                State::Flagged => {
+                    direction = match direction {
+                        (0, 1) => (0, -1),
+                        (1, 0) => (-1, 0),
+                        (0, -1) => (0, 1),
+                        (-1, 0) => (1, 0),
+                        _ => unreachable!(),
+                    };
+                    world.insert(position, State::Clean);
+                }
+            }
+            position.0 += direction.0;
+            position.1 += direction.1;
+        }
+        bursts
+    }
+
+    let test = "..#
+#..
+...";
+    let real = &file_to_string("input/22").unwrap();
+
+    let res = solve_pt2(real);
+    println!("{}", res);
+}
+
+pub fn task_23() {
+    #[derive(Clone, Copy)]
+    enum V {
+        I(i64),
+        C(char),
+    }
+    #[derive(Clone, Copy)]
+    enum Instr {
+        Set(char, V),
+        Jnz(V, V),
+        Mul(char, V),
+        Sub(char, V),
+    }
+    fn solve_pt1(input: &str) -> usize {
+        let program = input
+            .lines()
+            .flat_map(|line| {
+                let mut s = line.split(" ");
+                let i = s.next().unwrap();
+                let _r = s.next().unwrap();
+                let r = _r.chars().next().unwrap();
+                let v = {
+                    let c = s.next().unwrap();
+                    if let Ok(n) = c.parse::<i64>() {
+                        V::I(n)
+                    } else {
+                        V::C(c.chars().next().unwrap())
+                    }
+                };
+                Some(match i {
+                    "set" => Instr::Set(r, v),
+                    "sub" => Instr::Sub(r, v),
+                    "mul" => Instr::Mul(r, v),
+                    "jnz" => {
+                        Instr::Jnz(
+                            if let Ok(n) = _r.parse::<i64>() {
+                                V::I(n)
+                            } else {
+                                V::C(r)
+                            },
+                            v,
+                        )
+                    }
+                    _ => return None,
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let mut regs = (b'a'..b'i')
+            .map(|c| (c as char, 0))
+            .collect::<HashMap<char, i64>>();
+        fn val(v: V, regs: &HashMap<char, i64>) -> i64 {
+            match v {
+                V::I(n) => n,
+                V::C(c) => *regs.get(&c).unwrap_or(&0),
+            }
+        }
+
+        let mut pc = 0i64;
+        let pn = program.len() as i64;
+        let mut num_muls = 0;
+        while pc >= 0 && pc < pn {
+            match program[pc as usize] {
+                Instr::Set(r, v) => {
+                    let n = val(v, &regs);
+                    regs.insert(r, n);
+                    pc += 1;
+                }
+                Instr::Sub(r, v) => {
+                    let n = val(v, &regs);
+                    let m = *regs.get(&r).unwrap_or(&0);
+                    regs.insert(r, m - n);
+                    pc += 1;
+                }
+                Instr::Mul(r, v) => {
+                    let n = val(v, &regs);
+                    let m = *regs.get(&r).unwrap_or(&0);
+                    regs.insert(r, m * n);
+                    pc += 1;
+                    num_muls += 1;
+                }
+                Instr::Jnz(r, v) => {
+                    let n = val(v, &regs);
+                    let m = val(r, &regs);
+                    if m != 0 {
+                        pc += n;
+                    } else {
+                        pc += 1;
+                    }
+                }
+            }
+        }
+        num_muls
+    }
+
+    fn solve_pt2() {
+        // The program is equivalent to this one:
+        let mut b = 108_100;
+        let c = 125_100;
+        let mut h = 0;
+
+        loop {
+            let mut f = 1;
+            let mut d = 2;
+            loop {
+                if b % d == 0 {
+                    f = 0;
+                }
+                d += 1;
+                if d == b {
+                    break;
+                }
+            }
+
+            if f == 0 {
+                h += 1;
+            }
+            if b == c {
+                println!("h = {}", h);
+                return;
+            }
+            b += 17;
+        }
+    }
+
+    let real = &file_to_string("input/23").unwrap();
+    let res = solve_pt1(real);
+    println!("{}", res);
+}
+
+pub fn task_24() {
+    use std::cell::Cell;
+    #[derive(Debug, Clone)]
+    struct Port(usize, usize, Cell<bool>);
+    impl Port {
+        fn from_str(s: &str) -> Port {
+            let mut s = s.split("/");
+            let a = s.next().unwrap().parse::<usize>().unwrap();
+            let b = s.next().unwrap().parse::<usize>().unwrap();
+            Port(a, b, Cell::new(true))
+        }
+
+        fn has(&self, n: usize) -> bool {
+            self.0 == n || self.1 == n
+        }
+
+        fn other(&self, n: usize) -> usize {
+            if self.0 == n { self.1 } else { self.0 }
+        }
+    }
+
+    fn solve_pt1(input: &str) -> usize {
+        fn recursive(start: usize, ports: &Vec<Port>) -> (usize, usize) {
+            let mut possible = ports
+                .iter()
+                .filter(|p| p.2.get() && p.has(start))
+                .peekable();
+            if possible.peek().is_none() {
+                (0, 0)
+            } else {
+                let mut best = (0, 0);
+                for p in possible {
+                    p.2.set(false);
+                    let (mut s, len) = recursive(p.other(start), ports);
+                    s += p.0 + p.1;
+                    if len >= best.1 || (len == (best.1 - 1) && s > best.0) {
+                        best = (s, len + 1);
+                    }
+                    p.2.set(true);
+                }
+                best
+            }
+        }
+
+        let ports = input
+            .lines()
+            .map(|line| Port::from_str(line))
+            .collect::<Vec<_>>();
+
+        recursive(0, &ports).0
+    }
+
+    let test = "0/2
+2/2
+2/3
+3/4
+3/5
+0/1
+10/1
+9/10";
+
+    let real = &file_to_string("input/24").unwrap();
+
+    let res = solve_pt1(real);
+    println!("{}", res);
+}
+
+pub fn task_25() {
+    fn solve_pt1() -> usize {
+        let mut tape = VecDeque::new();
+        tape.push_front(0);
+        let mut state = 'a';
+        let mut i = 0;
+
+        const N: usize = 12919244;
+        for _ in 0..N {
+            match state {
+                'a' => {
+                    if tape[i] == 0 {
+                        tape[i] = 1;
+                        i += 1;
+                        if i == tape.len() {
+                            tape.push_back(0);
+                        }
+                        state = 'b';
+                    } else {
+                        tape[i] = 0;
+                        if i == 0 {
+                            tape.push_front(0);
+                        } else {
+                            i -= 1;
+                        }
+                        state = 'c';
+                    }
+                }
+                'b' => {
+                    if tape[i] == 0 {
+                        tape[i] = 1;
+                        if i == 0 {
+                            tape.push_front(0);
+                        } else {
+                            i -= 1;
+                        }
+                        state = 'a';
+                    } else {
+                        tape[i] = 1;
+                        i += 1;
+                        if i == tape.len() {
+                            tape.push_back(0);
+                        }
+                        state = 'd';
+                    }
+                }
+                'c' => {
+                    if tape[i] == 0 {
+                        tape[i] = 1;
+                        i += 1;
+                        if i == tape.len() {
+                            tape.push_back(0);
+                        }
+                        state = 'a';
+                    } else {
+                        tape[i] = 0;
+                        if i == 0 {
+                            tape.push_front(0);
+                        } else {
+                            i -= 1;
+                        }
+                        state = 'e';
+                    }
+                }
+                'd' => {
+                    if tape[i] == 0 {
+                        tape[i] = 1;
+                        i += 1;
+                        if i == tape.len() {
+                            tape.push_back(0);
+                        }
+                        state = 'a';
+                    } else {
+                        tape[i] = 0;
+                        i += 1;
+                        if i == tape.len() {
+                            tape.push_back(0);
+                        }
+                        state = 'b';
+                    }
+                }
+                'e' => {
+                    if tape[i] == 0 {
+                        tape[i] = 1;
+                        if i == 0 {
+                            tape.push_front(0);
+                        } else {
+                            i -= 1;
+                        }
+                        state = 'f';
+                    } else {
+                        tape[i] = 1;
+                        if i == 0 {
+                            tape.push_front(0);
+                        } else {
+                            i -= 1;
+                        }
+                        state = 'c';
+                    }
+                }
+                'f' => {
+                    if tape[i] == 0 {
+                        tape[i] = 1;
+                        i += 1;
+                        if i == tape.len() {
+                            tape.push_back(0);
+                        }
+                        state = 'd';
+                    } else {
+                        tape[i] = 1;
+                        i += 1;
+                        if i == tape.len() {
+                            tape.push_back(0);
+                        }
+                        state = 'a';
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+        tape.iter().filter(|&&n| n == 1).count()
+    }
+
+    println!("{}", solve_pt1());
+}

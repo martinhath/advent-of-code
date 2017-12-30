@@ -32,6 +32,10 @@ fn main() {
         19 => tasks::task_19(),
         20 => tasks::task_20(),
         21 => tasks::task_21(),
+        22 => tasks::task_22(),
+        23 => tasks::task_23(),
+        24 => tasks::task_24(),
+        25 => tasks::task_25(),
         _ => {unreachable!()}
     }
 }
